@@ -73,11 +73,6 @@ class OrcamentoController extends Controller
 
     private function calculatePrice($distanceKm, $vehicleType)
     {
-        if ($vehicleType === 'van' || $vehicleType === 'caminhonete') {
-            return round($distanceKm * 6.50, 2);
-        }
-
-        // Carro de Passeio ou Moto
         if ($distanceKm <= 5) {
             return 130.00;
         }
@@ -86,7 +81,10 @@ class OrcamentoController extends Controller
         }
         else {
             $extraKm = $distanceKm - 10;
-            return 150.00 + ($extraKm * 5.00);
+            if ($vehicleType === 'van' || $vehicleType === 'caminhonete') {
+                return 150.00 + (round($extraKm * 6.50, 2));
+            }
+            return 150.00 + (round($extraKm * 5.00, 2));
         }
     }
 

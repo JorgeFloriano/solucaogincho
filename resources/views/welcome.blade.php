@@ -65,7 +65,7 @@
                         <option value="carro">Carro de Passeio</option>
                         <option value="caminhonete">Caminhonete</option>
                         <option value="van">Van</option>
-                        <option value="moto">Moto</option>
+                        <option value="moto">Motocicleta</option>
                     </select>
                 </div>
 
@@ -132,10 +132,51 @@
     </div>
 
     <script>
+        // Ativa o Autocomplete do Google nas caixas de endereço
+        window.initMap = function() {
+            const options = {
+                componentRestrictions: { country: "br" }, // Restringe resultados ao Brasil
+                fields: ["formatted_address", "name"]
+            };
+
+            const pickupInput = document.getElementById('pickup');
+            const destInput = document.getElementById('destination');
+
+            new google.maps.places.Autocomplete(pickupInput, options);
+            new google.maps.places.Autocomplete(destInput, options);
+
+            // Tenta pegar a localização GPS do usuário (super útil pra quando o carro quebra)
+            if (navigator.geolocation) {
+                pickupInput.placeholder = "Buscando sua localização via GPS...";
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const latlng = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        // Usa a API de Geocoding (que já vem na Maps JavaScript API) para ler o bairro/rua
+                        const geocoder = new google.maps.Geocoder();
+                        geocoder.geocode({ location: latlng }, function(results, status) {
+                            if (status === "OK" && results[0]) {
+                                pickupInput.value = results[0].formatted_address;
+                            } else {
+                                pickupInput.placeholder = "Onde o veículo está?";
+                            }
+                        });
+                    },
+                    function(error) {
+                        console.warn("GPS ignorado ou sem acesso via navegador.", error);
+                        pickupInput.placeholder = "Onde o veículo está?";
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            }
+        };
+
         // Lógica simples para mostrar/esconder checkbox "Sem Carga" para Van e Caminhonete
-        document.getElementById('vehicle_type').addEventListener('change', function (e) {
+        document.getElementById('vehicle_type').addEventListener('change', function(e) {
             const vanCondition = document.getElementById('van-condition');
-            if (e.target.value === 'van' || e.target.value === 'caminhonete') {
+            if(e.target.value === 'van' || e.target.value === 'caminhonete') {
                 vanCondition.style.display = 'flex';
                 // Trigger a micro-animation
                 vanCondition.style.opacity = '0';
@@ -148,9 +189,9 @@
                 vanCondition.querySelector('input').checked = true; // reset ao padrão
             }
         });
-
-        // O form agora enviará os dados para o backend de forma nativa.
     </script>
+    <!-- O script do Mapa é carregado por último e já sabe que a função initMap existe -->
+    <script async src="https://maps.googleapis.com/maps/api/js?key={{ env('GOOGLE_MAPS_API_KEY') }}&libraries=places&loading=async&callback=initMap"></script>
 </body>
 
 </html>
