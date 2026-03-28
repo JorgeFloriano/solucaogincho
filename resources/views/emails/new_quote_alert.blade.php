@@ -16,8 +16,12 @@
         
         <hr style="border-top: 1px solid #eee;">
         
-        <p><strong>📍 Retirada:</strong> {{ $quote->pickup }}</p>
-        <p><strong>🏁 Destino:</strong> {{ $quote->destination }}</p>
+        <p><strong>📍 Retirada:</strong> {{ $quote->pickup }} 
+            <br><a href="https://www.google.com/maps/search/?api=1&query={{ rawurlencode($quote->pickup) }}" style="color: #3b82f6; text-decoration: none; font-size: 0.9rem;">(Ver no Mapa)</a>
+        </p>
+        <p><strong>🏁 Destino:</strong> {{ $quote->destination }} 
+            <br><a href="https://www.google.com/maps/search/?api=1&query={{ rawurlencode($quote->destination) }}" style="color: #3b82f6; text-decoration: none; font-size: 0.9rem;">(Ver no Mapa)</a>
+        </p>
         <p><strong>📏 Distância Exata:</strong> {{ number_format($quote->distance_km, 1, ',', '.') }} km</p>
         
         <hr style="border-top: 1px solid #eee;">
