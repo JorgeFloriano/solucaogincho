@@ -8,3 +8,4 @@ Route::get('/', function () {
 });
 
 Route::post('/calcular', [OrcamentoController::class, 'calcular'])->name('orcamento.calcular');
+Route::get('/confirmar', [OrcamentoController::class, 'confirmar'])->name('orcamento.confirmar');

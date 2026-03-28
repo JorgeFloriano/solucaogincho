@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use App\Models\Quote;
 
 class OrcamentoController extends Controller
 {
@@ -18,9 +19,9 @@ class OrcamentoController extends Controller
         $pickup = $request->input('pickup');
         $destination = $request->input('destination');
         $vehicleType = $request->input('vehicle_type');
-        $rodasLivres = $request->has('rodas_livres');
-        $cambioDestravado = $request->has('cambio_destravado');
-        $semCarga = $request->has('sem_carga');
+        $freeWheels = $request->has('rodas_livres');
+        $unlockedGearbox = $request->has('cambio_destravado');
+        $emptyLoad = $request->has('sem_carga');
 
         // 1. Calculate Distance via Google Maps API
         $distanceKm = $this->getDistance($pickup, $destination);
@@ -28,20 +29,54 @@ class OrcamentoController extends Controller
         // 2. Calculate Pricing
         $price = $this->calculatePrice($distanceKm, $vehicleType);
 
-        // 3. Generate WhatsApp Link
+        // 3. Instead of saving, store data in session for the next step
+        $quoteData = [
+            'vehicle_type' => $vehicleType,
+            'pickup' => $pickup,
+            'destination' => $destination,
+            'distance_km' => $distanceKm,
+            'price' => $price,
+            'free_wheels' => $freeWheels,
+            'unlocked_gearbox' => $unlockedGearbox,
+            'empty_load' => $emptyLoad,
+        ];
+
+        // 4. Generate WhatsApp Link
         $message = $this->generateWhatsAppMessage(
-            $pickup, $destination, $vehicleType, $distanceKm, $price, $rodasLivres, $cambioDestravado, $semCarga
+            $pickup, $destination, $vehicleType, $distanceKm, $price, $freeWheels, $unlockedGearbox, $emptyLoad
         );
 
         $phone = "5515981655797"; // Central do WhatsApp do Paulo
         $waLink = "https://wa.me/{$phone}?text=" . urlencode($message);
 
-        return back()->with([
+        session()->put('pending_quote', [
+            'data' => $quoteData,
+            'waLink' => $waLink
+        ]);
+
+        return back()->withInput()->with([
             'success' => true,
             'distance' => $distanceKm,
             'price' => $price,
-            'waLink' => $waLink
         ]);
+    }
+
+    public function confirmar()
+    {
+        $pending = session('pending_quote');
+
+        if (!$pending) {
+            return redirect('/');
+        }
+
+        // Save to Database
+        Quote::create($pending['data']);
+
+        // Clear session so it's not submitted twice
+        session()->forget('pending_quote');
+
+        // Redirect directly to WhatsApp Web / App
+        return redirect()->away($pending['waLink']);
     }
 
     private function getDistance($origin, $destination)
@@ -88,30 +123,30 @@ class OrcamentoController extends Controller
         }
     }
 
-    private function generateWhatsAppMessage($pickup, $destination, $vehicleType, $distanceKm, $price, $rodas, $cambio, $semCarga)
+    private function generateWhatsAppMessage($pickup, $destination, $vehicleType, $distanceKm, $price, $freeWheels, $unlockedGearbox, $emptyLoad)
     {
         $priceFormatted = number_format($price, 2, ',', '.');
         $distFormatted = number_format($distanceKm, 1, ',', '.');
 
-        $tipos = [
+        $types = [
             'carro' => 'Carro de Passeio',
             'caminhonete' => 'Caminhonete',
             'van' => 'Van',
             'moto' => 'Moto'
         ];
-        $nomeVeiculo = $tipos[$vehicleType] ?? 'Veículo';
+        $vehicleName = $types[$vehicleType] ?? 'Veículo';
 
-        $msg = "*NOVO ORÇAMENTO DE GUINCHO* 🚨\n\n";
-        $msg .= "📍 *Retirada:* {$pickup}\n";
-        $msg .= "🏁 *Destino:* {$destination}\n";
-        $msg .= "📏 *Distância Exata:* {$distFormatted} km\n\n";
+        $msg = "*NOVO ORÇAMENTO DE GUINCHO* \u{1f6a8}\n\n";
+        $msg .= "\u{1f4cd} *Retirada:* {$pickup}\n";
+        $msg .= "\u{1f3c1} *Destino:* {$destination}\n";
+        $msg .= "\u{1f4cf} *Distância Exata:* {$distFormatted} km\n\n";
 
-        $msg .= "🚗 *Veículo:* {$nomeVeiculo}\n";
-        $msg .= "⚙️ *Rodas Livres?* " . ($rodas ? 'Sim' : 'Não') . "\n";
-        $msg .= "🕹️ *Câmbio Destravado?* " . ($cambio ? 'Sim' : 'Não') . "\n";
+        $msg .= "\u{1f697} *Veículo:* {$vehicleName}\n";
+        $msg .= "\u{2699}\u{fe0f} *Rodas Livres?* " . ($freeWheels ? 'Sim' : 'Não') . "\n";
+        $msg .= "\u{1f579}\u{fe0f} *Câmbio Destravado?* " . ($unlockedGearbox ? 'Sim' : 'Não') . "\n";
 
         if ($vehicleType === 'van' || $vehicleType === 'caminhonete') {
-            $msg .= "📦 *Sem Carga?* " . ($semCarga ? 'Sim' : 'Não') . "\n";
+            $msg .= "\u{1f4e6} *Sem Carga?* " . ($emptyLoad ? 'Sim' : 'Não') . "\n";
         }
 
         $msg .= "\n💰 *VALOR ESTIMADO:* R$ {$priceFormatted}";
