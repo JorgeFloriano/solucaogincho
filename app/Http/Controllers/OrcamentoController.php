@@ -151,8 +151,7 @@ class OrcamentoController extends Controller
         $pickupLink = "https://www.google.com/maps/search/?api=1&query=" . rawurlencode($quote->pickup);
         $destinationLink = "https://www.google.com/maps/search/?api=1&query=" . rawurlencode($quote->destination);
 
-        $msg = "*NOVA SOLICITAÇÃO DE GUINCHO - ID: {$quote->id}* \u{1f6a8}\n\n";
-        $msg .= "\u{1f464} *Cliente:* {$quote->name}\n";
+        $msg = "*OLÁ PAULO, ME CHAMO {$quote->name}. VOCÊ TEM UMA NOVA SOLICITAÇÃO DE GUINCHO - ID: {$quote->id}* \u{1f6a8}\n\n";
 
         $msg .= "\u{1f4cd} *Retirada:* {$quote->pickup}\n";
         $msg .= "\u{1f5fa}\u{fe0f} *Mapa (Retirada):* {$pickupLink}\n\n";
@@ -167,6 +166,8 @@ class OrcamentoController extends Controller
         if ($quote->vehicle_type === 'van' || $quote->vehicle_type === 'caminhonete') {
             $msg .= "\u{1f4e6} *Sem Carga?* " . ($quote->empty_load ? 'Sim' : 'Não') . "\n";
         }
+
+        $msg .= "Pode me confirmar o orçamento por favor? \n";
 
         return $msg;
     }
