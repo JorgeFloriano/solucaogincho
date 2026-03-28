@@ -167,7 +167,7 @@ class OrcamentoController extends Controller
             $msg .= "\u{1f4e6} *Sem Carga?* " . ($quote->empty_load ? 'Sim' : 'Não') . "\n";
         }
 
-        $msg .= "Pode me confirmar o orçamento por favor? \n";
+        $msg .= "\nPode me confirmar o orçamento por favor? \n";
 
         return $msg;
     }
