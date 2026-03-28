@@ -154,13 +154,6 @@ class OrcamentoController extends Controller
         $msg = "*NOVA SOLICITAÇÃO DE GUINCHO - ID: {$quote->id}* \u{1f6a8}\n\n";
         $msg .= "\u{1f464} *Cliente:* {$quote->name}\n";
 
-        if (!empty($quote->phone)) {
-            $numericPhone = preg_replace('/\D/', '', $quote->phone);
-            $waClientLink = "https://wa.me/55{$numericPhone}";
-            $msg .= "\u{1f4f1} *Telefone:* {$quote->phone}\n";
-            $msg .= "\u{1f4ac} *Falar com cliente:* {$waClientLink}\n\n";
-        }
-
         $msg .= "\u{1f4cd} *Retirada:* {$quote->pickup}\n";
         $msg .= "\u{1f5fa}\u{fe0f} *Mapa (Retirada):* {$pickupLink}\n\n";
         $msg .= "\u{1f3c1} *Destino:* {$quote->destination}\n";
