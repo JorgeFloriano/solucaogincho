@@ -76,7 +76,7 @@ class OrcamentoController extends Controller
         // Generate WhatsApp Link with the actual Quote ID
         $message = $this->generateWhatsAppMessage($quote);
 
-        $phone = "5515981655797"; // Central do WhatsApp do Paulo
+        $phone = "5515997761186"; // Central do WhatsApp do Paulo
         $waLink = "https://wa.me/{$phone}?text=" . rawurlencode($message);
 
         // Clear session so it's not submitted twice
@@ -151,7 +151,7 @@ class OrcamentoController extends Controller
         $pickupLink = "https://www.google.com/maps/search/?api=1&query=" . rawurlencode($quote->pickup);
         $destinationLink = "https://www.google.com/maps/search/?api=1&query=" . rawurlencode($quote->destination);
 
-        $msg = "*OLÁ PAULO, ME CHAMO {$quote->name}. VOCÊ TEM UMA NOVA SOLICITAÇÃO DE GUINCHO - ID: {$quote->id}* \u{1f6a8}\n\n";
+        $msg = "*OLÁ PAULO, ME CHAMO {$quote->name}. VOCÊ TEM UMA NOVA SOLICITAÇÃO DE GUINCHO* \u{1f6a8}\n\n";
 
         $msg .= "\u{1f4cd} *Retirada:* {$quote->pickup}\n";
         $msg .= "\u{1f5fa}\u{fe0f} *Mapa (Retirada):* {$pickupLink}\n\n";
