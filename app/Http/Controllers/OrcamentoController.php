@@ -125,7 +125,6 @@ class OrcamentoController extends Controller
 
     private function generateWhatsAppMessage($pickup, $destination, $vehicleType, $distanceKm, $price, $freeWheels, $unlockedGearbox, $emptyLoad)
     {
-        $priceFormatted = number_format($price, 2, ',', '.');
         $distFormatted = number_format($distanceKm, 1, ',', '.');
 
         $types = [
@@ -136,20 +135,26 @@ class OrcamentoController extends Controller
         ];
         $vehicleName = $types[$vehicleType] ?? 'Veículo';
 
+        $emojis = [
+            'carro' => "\u{1f697}",
+            'caminhonete' => "\u{1f6fb}",
+            'van' => "\u{1f690}",
+            'moto' => "\u{1f3cd}\u{fe0f}"
+        ];
+        $vehicleEmoji = $emojis[$vehicleType] ?? "\u{1f697}";
+
         $msg = "*NOVO ORÇAMENTO DE GUINCHO* \u{1f6a8}\n\n";
         $msg .= "\u{1f4cd} *Retirada:* {$pickup}\n";
         $msg .= "\u{1f3c1} *Destino:* {$destination}\n";
         $msg .= "\u{1f4cf} *Distância Exata:* {$distFormatted} km\n\n";
 
-        $msg .= "\u{1f697} *Veículo:* {$vehicleName}\n";
+        $msg .= "{$vehicleEmoji} *Veículo:* {$vehicleName}\n";
         $msg .= "\u{2699}\u{fe0f} *Rodas Livres?* " . ($freeWheels ? 'Sim' : 'Não') . "\n";
         $msg .= "\u{1f579}\u{fe0f} *Câmbio Destravado?* " . ($unlockedGearbox ? 'Sim' : 'Não') . "\n";
 
         if ($vehicleType === 'van' || $vehicleType === 'caminhonete') {
             $msg .= "\u{1f4e6} *Sem Carga?* " . ($emptyLoad ? 'Sim' : 'Não') . "\n";
         }
-
-        $msg .= "\n💰 *VALOR ESTIMADO:* R$ {$priceFormatted}";
 
         return $msg;
     }
