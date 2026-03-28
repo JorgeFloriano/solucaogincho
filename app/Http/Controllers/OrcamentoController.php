@@ -143,9 +143,14 @@ class OrcamentoController extends Controller
         ];
         $vehicleEmoji = $emojis[$vehicleType] ?? "\u{1f697}";
 
+        $pickupLink = "https://www.google.com/maps/search/?api=1&query=" . urlencode($pickup);
+        $destinationLink = "https://www.google.com/maps/search/?api=1&query=" . urlencode($destination);
+
         $msg = "*NOVO ORÇAMENTO DE GUINCHO* \u{1f6a8}\n\n";
         $msg .= "\u{1f4cd} *Retirada:* {$pickup}\n";
+        $msg .= "\u{1f5fa}\u{fe0f} *Mapa (Retirada):* {$pickupLink}\n\n";
         $msg .= "\u{1f3c1} *Destino:* {$destination}\n";
+        $msg .= "\u{1f5fa}\u{fe0f} *Mapa (Destino):* {$destinationLink}\n\n";
         $msg .= "\u{1f4cf} *Distância Exata:* {$distFormatted} km\n\n";
 
         $msg .= "{$vehicleEmoji} *Veículo:* {$vehicleName}\n";
