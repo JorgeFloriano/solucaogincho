@@ -11,11 +11,15 @@ class OrcamentoController extends Controller
     public function calcular(Request $request)
     {
         $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => ['required', 'string', 'regex:/^\(\d{2}\)\s\d{4,5}\-\d{4}$/'],
             'vehicle_type' => 'required|string',
             'pickup' => 'required|string',
             'destination' => 'required|string',
         ]);
 
+        $name = $request->input('name');
+        $phone_customer = $request->input('phone');
         $pickup = $request->input('pickup');
         $destination = $request->input('destination');
         $vehicleType = $request->input('vehicle_type');
@@ -31,6 +35,8 @@ class OrcamentoController extends Controller
 
         // 3. Instead of saving, store data in session for the next step
         $quoteData = [
+            'name' => $name,
+            'phone' => $phone_customer,
             'vehicle_type' => $vehicleType,
             'pickup' => $pickup,
             'destination' => $destination,
@@ -41,17 +47,8 @@ class OrcamentoController extends Controller
             'empty_load' => $emptyLoad,
         ];
 
-        // 4. Generate WhatsApp Link
-        $message = $this->generateWhatsAppMessage(
-            $pickup, $destination, $vehicleType, $distanceKm, $price, $freeWheels, $unlockedGearbox, $emptyLoad
-        );
-
-        $phone = "5515981655797"; // Central do WhatsApp do Paulo
-        $waLink = "https://wa.me/{$phone}?text=" . urlencode($message);
-
         session()->put('pending_quote', [
-            'data' => $quoteData,
-            'waLink' => $waLink
+            'data' => $quoteData
         ]);
 
         return back()->withInput()->with([
@@ -70,13 +67,23 @@ class OrcamentoController extends Controller
         }
 
         // Save to Database
-        Quote::create($pending['data']);
+        $quote = Quote::create($pending['data']);
+
+        // Enviar e-mail de notificação (Substitua admin@... pelo seu e-mail)
+        \Illuminate\Support\Facades\Mail::to(env('MAIL_FROM_ADDRESS', 'admin@solucaoguincho.com.br'))
+            ->send(new \App\Mail\NewQuoteAlert($quote));
+
+        // Generate WhatsApp Link with the actual Quote ID
+        $message = $this->generateWhatsAppMessage($quote);
+
+        $phone = "5515981655797"; // Central do WhatsApp do Paulo
+        $waLink = "https://wa.me/{$phone}?text=" . rawurlencode($message);
 
         // Clear session so it's not submitted twice
         session()->forget('pending_quote');
 
         // Redirect directly to WhatsApp Web / App
-        return redirect()->away($pending['waLink']);
+        return redirect()->away($waLink);
     }
 
     private function getDistance($origin, $destination)
@@ -110,11 +117,9 @@ class OrcamentoController extends Controller
     {
         if ($distanceKm <= 5) {
             return 130.00;
-        }
-        elseif ($distanceKm <= 10) {
+        } elseif ($distanceKm <= 10) {
             return 150.00;
-        }
-        else {
+        } else {
             $extraKm = $distanceKm - 10;
             if ($vehicleType === 'van' || $vehicleType === 'caminhonete') {
                 return 150.00 + (round($extraKm * 6.50, 2));
@@ -123,9 +128,9 @@ class OrcamentoController extends Controller
         }
     }
 
-    private function generateWhatsAppMessage($pickup, $destination, $vehicleType, $distanceKm, $price, $freeWheels, $unlockedGearbox, $emptyLoad)
+    private function generateWhatsAppMessage(Quote $quote)
     {
-        $distFormatted = number_format($distanceKm, 1, ',', '.');
+        $distFormatted = number_format($quote->distance_km, 1, ',', '.');
 
         $types = [
             'carro' => 'Carro de Passeio',
@@ -133,7 +138,7 @@ class OrcamentoController extends Controller
             'van' => 'Van',
             'moto' => 'Moto'
         ];
-        $vehicleName = $types[$vehicleType] ?? 'Veículo';
+        $vehicleName = $types[$quote->vehicle_type] ?? 'Veículo';
 
         $emojis = [
             'carro' => "\u{1f697}",
@@ -141,24 +146,33 @@ class OrcamentoController extends Controller
             'van' => "\u{1f690}",
             'moto' => "\u{1f3cd}\u{fe0f}"
         ];
-        $vehicleEmoji = $emojis[$vehicleType] ?? "\u{1f697}";
+        $vehicleEmoji = $emojis[$quote->vehicle_type] ?? "\u{1f697}";
 
-        $pickupLink = "https://www.google.com/maps/search/?api=1&query=" . urlencode($pickup);
-        $destinationLink = "https://www.google.com/maps/search/?api=1&query=" . urlencode($destination);
+        $pickupLink = "https://www.google.com/maps/search/?api=1&query=" . rawurlencode($quote->pickup);
+        $destinationLink = "https://www.google.com/maps/search/?api=1&query=" . rawurlencode($quote->destination);
 
-        $msg = "*NOVO ORÇAMENTO DE GUINCHO* \u{1f6a8}\n\n";
-        $msg .= "\u{1f4cd} *Retirada:* {$pickup}\n";
+        $msg = "*NOVA SOLICITAÇÃO DE GUINCHO - ID: {$quote->id}* \u{1f6a8}\n\n";
+        $msg .= "\u{1f464} *Cliente:* {$quote->name}\n";
+
+        if (!empty($quote->phone)) {
+            $numericPhone = preg_replace('/\D/', '', $quote->phone);
+            $waClientLink = "https://wa.me/55{$numericPhone}";
+            $msg .= "\u{1f4f1} *Telefone:* {$quote->phone}\n";
+            $msg .= "\u{1f4ac} *Falar com cliente:* {$waClientLink}\n\n";
+        }
+
+        $msg .= "\u{1f4cd} *Retirada:* {$quote->pickup}\n";
         $msg .= "\u{1f5fa}\u{fe0f} *Mapa (Retirada):* {$pickupLink}\n\n";
-        $msg .= "\u{1f3c1} *Destino:* {$destination}\n";
+        $msg .= "\u{1f3c1} *Destino:* {$quote->destination}\n";
         $msg .= "\u{1f5fa}\u{fe0f} *Mapa (Destino):* {$destinationLink}\n\n";
         $msg .= "\u{1f4cf} *Distância Exata:* {$distFormatted} km\n\n";
 
         $msg .= "{$vehicleEmoji} *Veículo:* {$vehicleName}\n";
-        $msg .= "\u{2699}\u{fe0f} *Rodas Livres?* " . ($freeWheels ? 'Sim' : 'Não') . "\n";
-        $msg .= "\u{1f579}\u{fe0f} *Câmbio Destravado?* " . ($unlockedGearbox ? 'Sim' : 'Não') . "\n";
+        $msg .= "\u{2699}\u{fe0f} *Rodas Livres?* " . ($quote->free_wheels ? 'Sim' : 'Não') . "\n";
+        $msg .= "\u{1f579}\u{fe0f} *Câmbio Destravado?* " . ($quote->unlocked_gearbox ? 'Sim' : 'Não') . "\n";
 
-        if ($vehicleType === 'van' || $vehicleType === 'caminhonete') {
-            $msg .= "\u{1f4e6} *Sem Carga?* " . ($emptyLoad ? 'Sim' : 'Não') . "\n";
+        if ($quote->vehicle_type === 'van' || $quote->vehicle_type === 'caminhonete') {
+            $msg .= "\u{1f4e6} *Sem Carga?* " . ($quote->empty_load ? 'Sim' : 'Não') . "\n";
         }
 
         return $msg;

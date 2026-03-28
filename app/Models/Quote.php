@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Quote extends Model
 {
     protected $fillable = [
+        'name',
+        'phone',
         'vehicle_type',
         'pickup',
         'destination',
